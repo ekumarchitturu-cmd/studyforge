@@ -95,8 +95,10 @@ with st.sidebar:
 
             st.markdown("---")
             st.markdown("### 📊 Account Stats")
-            st.metric("Plans Generated", user[4])
-            st.metric("Member Since", datetime.fromisoformat(user[3]).strftime("%b %d, %Y"))
+            plans_generated = user[4] if user else 0
+            created_at = user[3] if user else datetime.now().isoformat()
+            st.metric("Plans Generated", plans_generated)
+            st.metric("Member Since", datetime.fromisoformat(created_at).strftime("%b %d, %Y"))
 
             # Get total users for phase display
             total_users = db.get_total_users()
