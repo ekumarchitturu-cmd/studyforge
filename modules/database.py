@@ -2,6 +2,8 @@ import sqlite3
 import json
 from datetime import datetime
 import os
+import hashlib
+import secrets
 
 class Database:
     def __init__(self, db_path="data/users.db"):
@@ -15,14 +17,18 @@ class Database:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Users table
+        # Users table with authentication
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
                 credits INTEGER DEFAULT 45,
                 created_at TEXT,
-                total_plans_generated INTEGER DEFAULT 0
+                total_plans_generated INTEGER DEFAULT 0,
+                is_verified INTEGER DEFAULT 0,
+                last_login TEXT
             )
         ''')
 
@@ -136,3 +142,79 @@ class Database:
 
         conn.close()
         return count
+
+    def hash_password(self, password, salt=None):
+        """Hash password with salt using SHA-256"""
+        if salt is None:
+            salt = secrets.token_hex(32)
+
+        pwd_hash = hashlib.pbkdf2_hmac(
+            'sha256',
+            password.encode('utf-8'),
+            salt.encode('utf-8'),
+            100000  # iterations
+        )
+        return pwd_hash.hex(), salt
+
+    def create_user(self, email, password):
+        """Create new user with email and password"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            # Hash password
+            password_hash, salt = self.hash_password(password)
+
+            # Create user
+            cursor.execute('''
+                INSERT INTO users (email, password_hash, salt, credits, created_at, total_plans_generated, is_verified)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (email, password_hash, salt, 45, datetime.now().isoformat(), 0, 0))
+
+            conn.commit()
+            conn.close()
+            return True, "Account created successfully!"
+
+        except sqlite3.IntegrityError:
+            conn.close()
+            return False, "Email already exists!"
+        except Exception as e:
+            conn.close()
+            return False, f"Error: {str(e)}"
+
+    def verify_password(self, email, password):
+        """Verify user password"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT password_hash, salt FROM users WHERE email = ?', (email,))
+        result = cursor.fetchone()
+
+        if not result:
+            conn.close()
+            return False, "Email not found!"
+
+        stored_hash, salt = result
+        input_hash, _ = self.hash_password(password, salt)
+
+        if input_hash == stored_hash:
+            # Update last login
+            cursor.execute('UPDATE users SET last_login = ? WHERE email = ?',
+                          (datetime.now().isoformat(), email))
+            conn.commit()
+            conn.close()
+            return True, "Login successful!"
+        else:
+            conn.close()
+            return False, "Incorrect password!"
+
+    def get_user_by_email(self, email):
+        """Get user by email (for authenticated users only)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
+        user = cursor.fetchone()
+
+        conn.close()
+        return user

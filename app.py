@@ -4,6 +4,7 @@ from modules.credit_manager import CreditManager
 from modules.prompt_builder import build_universal_prompt
 from modules.ai_agent import AIAgent
 from modules.input_validator import InputValidator
+from modules.auth import AuthManager
 from datetime import datetime
 
 # Page configuration
@@ -23,6 +24,9 @@ def init_components():
     return db, cm, ai
 
 db, credit_manager, ai_agent = init_components()
+
+# Initialize authentication
+AuthManager.init_session_state()
 
 # Custom CSS - Futuristic Design
 st.markdown("""
@@ -303,19 +307,89 @@ st.markdown("""
 st.markdown('<div class="main-header">🧠 PlanMind</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">AI-Powered Study Plans • Personalized • Adaptive • Smart</div>', unsafe_allow_html=True)
 
-# Sidebar for user info and credits
+# Sidebar for authentication and user info
 with st.sidebar:
-    st.markdown("## 👤 User Account")
+    if not AuthManager.is_authenticated():
+        # Show login/signup form
+        st.markdown("## 🔐 Authentication")
 
-    email = st.text_input("📧 Your Email:", placeholder="student@example.com", key="email_input")
+        if st.session_state.get('show_signup', False):
+            # SIGNUP FORM
+            st.markdown("### Create Account")
 
-    if email:
-        # Validate email
-        if not InputValidator.validate_email(email):
-            st.error("⚠️ Please enter a valid email address")
+            with st.form("signup_form"):
+                signup_email = st.text_input("📧 Email", placeholder="your@email.com")
+                signup_password = st.text_input("🔒 Password", type="password", placeholder="Min 8 chars, 1 upper, 1 number")
+                signup_confirm = st.text_input("🔒 Confirm Password", type="password")
+                signup_submit = st.form_submit_button("Create Account", use_container_width=True)
+
+                if signup_submit:
+                    # Validate email
+                    if not AuthManager.validate_email(signup_email):
+                        st.error("❌ Invalid email format")
+                    # Check passwords match
+                    elif signup_password != signup_confirm:
+                        st.error("❌ Passwords don't match")
+                    else:
+                        # Validate password strength
+                        is_valid, msg = AuthManager.validate_password(signup_password)
+                        if not is_valid:
+                            st.error(f"❌ {msg}")
+                        else:
+                            # Create user
+                            success, message = db.create_user(signup_email, signup_password)
+                            if success:
+                                st.success(f"✅ {message}")
+                                st.info("👉 Please login with your credentials")
+                                AuthManager.toggle_signup()
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {message}")
+
+            if st.button("Already have an account? Login", use_container_width=True):
+                AuthManager.toggle_signup()
+                st.rerun()
+
         else:
-            # Get user info
-            user = db.get_user(email)
+            # LOGIN FORM
+            st.markdown("### Login")
+
+            with st.form("login_form"):
+                login_email = st.text_input("📧 Email", placeholder="your@email.com")
+                login_password = st.text_input("🔒 Password", type="password")
+                login_submit = st.form_submit_button("Login", use_container_width=True)
+
+                if login_submit:
+                    # Validate email format
+                    if not AuthManager.validate_email(login_email):
+                        st.error("❌ Invalid email format")
+                    else:
+                        # Verify credentials
+                        success, message = db.verify_password(login_email, login_password)
+                        if success:
+                            AuthManager.login(login_email)
+                            st.success(f"✅ {message}")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {message}")
+
+            if st.button("Don't have an account? Sign Up", use_container_width=True):
+                AuthManager.toggle_signup()
+                st.rerun()
+
+    else:
+        # User is authenticated - show their info
+        email = AuthManager.get_current_user()
+        st.markdown("## 👤 User Account")
+        st.markdown(f"**Logged in as:**\n`{email}`")
+
+        if st.button("🚪 Logout", use_container_width=True):
+            AuthManager.logout()
+            st.rerun()
+
+        # Get user info
+        user = db.get_user_by_email(email)
+        if user:
             credits = credit_manager.get_credits(email)
 
             # Display credits
@@ -362,9 +436,9 @@ with st.sidebar:
                 st.info("💡 Payment integration coming soon! Contact: support@studyforge.com")
 
 # Main content
-if not email or not InputValidator.validate_email(email):
-    # Welcome screen
-    st.markdown("## 👋 Welcome to StudyForge!")
+if not AuthManager.is_authenticated():
+    # Welcome screen - Not logged in
+    st.markdown("## 👋 Welcome to PlanMind!")
     st.markdown("""
     StudyForge creates personalized study plans using AI, tailored to:
     - **Your field** (Engineering, Medicine, Law, Commerce, Design, etc.)
@@ -389,7 +463,7 @@ if not email or not InputValidator.validate_email(email):
     2. Fill out the form below
     3. Generate your personalized plan in 30 seconds!
 
-    **👈 Enter your email in the sidebar to begin!**
+    **👈 Sign up / Login in the sidebar to begin!**
     """)
 
 else:
