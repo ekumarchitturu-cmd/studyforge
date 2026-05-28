@@ -82,18 +82,38 @@ with st.sidebar:
             st.markdown("### 💎 Your Credits")
             st.markdown(f'<div class="credit-box"><h2>{credits}</h2><p>credits remaining</p></div>', unsafe_allow_html=True)
 
+            # Smart credit warning
+            warning_msg, severity = credit_manager.get_credit_warning_message(email)
+            plans_remaining, leftover = credit_manager.calculate_remaining_plans(email)
+
+            if leftover > 0:
+                st.warning(f"💡 You have {leftover} leftover credits! Buy just {30 - leftover} more to unlock another plan!")
+            elif credits < 30:
+                st.error(warning_msg)
+            elif credits < 60:
+                st.warning(warning_msg)
+
             st.markdown("---")
             st.markdown("### 📊 Account Stats")
             st.metric("Plans Generated", user[4])
             st.metric("Member Since", datetime.fromisoformat(user[3]).strftime("%b %d, %Y"))
 
-            # Low credit warning
-            if credits < 30:
-                st.warning("⚠️ Low credits! Generate 1 more plan or buy credits below.")
+            # Get total users for phase display
+            total_users = db.get_total_users()
+            phase_info = ai_agent.get_phase_status(total_users)
+
+            st.markdown("---")
+            st.markdown("### 🚀 Platform Status")
+            st.info(f"**Phase {phase_info['phase']}:** {phase_info['description']}\n\n**Strategy:** {phase_info['strategy']}")
 
             st.markdown("---")
             st.markdown("### 💰 Buy More Credits")
-            st.info("**Pricing:**\n- 100 credits (3 plans) - $2\n- 300 credits (10 plans) - $5\n- 750 credits (25 plans) - $10")
+
+            pricing_tiers = credit_manager.get_pricing_tiers()
+            for tier in pricing_tiers:
+                badge = "⭐ POPULAR" if tier['popular'] else ""
+                savings = f"(Save {tier['savings']}!)" if tier['savings'] else ""
+                st.info(f"**{tier['name']}** {badge}\n- {tier['credits']} credits ({tier['plans']}) - ${tier['price']:.2f} {savings}")
 
             if st.button("💳 Buy Credits"):
                 st.info("💡 Payment integration coming soon! Contact: support@studyforge.com")
@@ -116,11 +136,15 @@ if not email or not InputValidator.validate_email(email):
     - ✅ Checkboxes to track progress
     - 📥 Download your plan
 
+    ### 🎉 Special Launch Offer:
+    - **Get 45 FREE credits** (1 full study plan!)
+    - Early adopters get **premium GPT-4 model**
+    - Leftover credits? Buy just what you need!
+
     ### 🚀 Get Started:
-    1. Enter your email in the sidebar
-    2. Get 100 FREE credits (3+ study plans)
-    3. Fill out the form below
-    4. Generate your personalized plan!
+    1. Enter your email in the sidebar → Get 45 credits instantly
+    2. Fill out the form below
+    3. Generate your personalized plan in 30 seconds!
 
     **👈 Enter your email in the sidebar to begin!**
     """)
@@ -256,8 +280,18 @@ else:
                         # Build prompt
                         prompt = build_universal_prompt(user_data)
 
-                        # Call AI
-                        study_plan = ai_agent.generate_study_plan(prompt)
+                        # Get user's plan count (for hybrid logic)
+                        user_plan_count = user[4]  # total_plans_generated
+
+                        # Get total users (for phase detection)
+                        total_users = db.get_total_users()
+
+                        # Call AI with hybrid system
+                        study_plan, model_used, estimated_cost = ai_agent.generate_study_plan(
+                            prompt,
+                            total_users=total_users,
+                            user_plan_count=user_plan_count
+                        )
 
                         # Deduct credits
                         credit_manager.deduct_credits(email)
@@ -265,8 +299,11 @@ else:
                         # Save to database
                         db.save_plan(email, subject, field, level, study_plan)
 
-                        # Display success
-                        st.success("✅ Your personalized study plan is ready!")
+                        # Display success with model info
+                        if model_used == "gpt-4":
+                            st.success("✅ Your personalized study plan is ready! (Generated with premium GPT-4 model)")
+                        else:
+                            st.success("✅ Your personalized study plan is ready! (Generated with fast GPT-3.5 model)")
 
                         # Display the plan
                         st.markdown("---")
@@ -283,14 +320,22 @@ else:
 
                         # Show updated credits
                         new_credits = credit_manager.get_credits(email)
-                        st.info(f"💎 Credits remaining: {new_credits}")
+                        plans_remaining, leftover = credit_manager.calculate_remaining_plans(email)
+
+                        if leftover > 0:
+                            st.info(f"💎 Credits remaining: {new_credits} ({leftover} leftover - buy {30-leftover} more to unlock another plan!)")
+                        else:
+                            st.info(f"💎 Credits remaining: {new_credits} ({plans_remaining} plans remaining)")
 
                         # Generate another button
                         if new_credits >= 30:
                             if st.button("🔄 Generate Another Plan"):
                                 st.rerun()
                         else:
-                            st.warning("⚠️ You don't have enough credits for another plan. Please purchase more credits.")
+                            if leftover > 0:
+                                st.warning(f"⚠️ You have {leftover} leftover credits! Buy just {30-leftover} more credits to generate another plan.")
+                            else:
+                                st.warning("⚠️ You don't have enough credits for another plan. Please purchase more credits.")
 
                     except Exception as e:
                         st.error(f"❌ Error generating study plan: {str(e)}")

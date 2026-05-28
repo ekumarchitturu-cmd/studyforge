@@ -20,7 +20,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
-                credits INTEGER DEFAULT 100,
+                credits INTEGER DEFAULT 45,
                 created_at TEXT,
                 total_plans_generated INTEGER DEFAULT 0
             )
@@ -52,11 +52,11 @@ class Database:
         user = cursor.fetchone()
 
         if not user:
-            # Create new user with 100 credits
+            # Create new user with 45 credits
             cursor.execute('''
                 INSERT INTO users (email, credits, created_at, total_plans_generated)
                 VALUES (?, ?, ?, ?)
-            ''', (email, 100, datetime.now().isoformat(), 0))
+            ''', (email, 45, datetime.now().isoformat(), 0))
             conn.commit()
             cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
             user = cursor.fetchone()
@@ -125,3 +125,14 @@ class Database:
         plans = cursor.fetchall()
         conn.close()
         return plans
+
+    def get_total_users(self):
+        """Get total number of users in database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT COUNT(*) FROM users')
+        count = cursor.fetchone()[0]
+
+        conn.close()
+        return count
