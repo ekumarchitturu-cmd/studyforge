@@ -24,43 +24,284 @@ def init_components():
 
 db, credit_manager, ai_agent = init_components()
 
-# Custom CSS
+# Custom CSS - Futuristic Design
 st.markdown("""
 <style>
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+    /* Global Styles */
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Main background with gradient */
+    .main {
+        background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
+    }
+
+    /* Header with gradient text */
     .main-header {
-        font-size: 3rem;
-        font-weight: bold;
+        font-size: 4.5rem;
+        font-weight: 900;
         text-align: center;
-        color: #1f77b4;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin-bottom: 0.5rem;
+        letter-spacing: -2px;
+        animation: glow 2s ease-in-out infinite alternate;
     }
+
+    @keyframes glow {
+        from {
+            filter: drop-shadow(0 0 10px #667eea);
+        }
+        to {
+            filter: drop-shadow(0 0 20px #764ba2);
+        }
+    }
+
     .sub-header {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         text-align: center;
-        color: #666;
-        margin-bottom: 2rem;
+        color: #a0aec0;
+        margin-bottom: 3rem;
+        font-weight: 300;
+        letter-spacing: 0.5px;
     }
+
+    /* Glassmorphism credit box */
     .credit-box {
-        background-color: #f0f8ff;
-        padding: 1rem;
-        border-radius: 10px;
-        border: 2px solid #1f77b4;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         text-align: center;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        transition: all 0.3s ease;
     }
+
+    .credit-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px 0 rgba(102, 126, 234, 0.5);
+    }
+
+    .credit-box h2 {
+        color: #667eea;
+        font-size: 3rem;
+        font-weight: 900;
+        margin: 0;
+        text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .credit-box p {
+        color: #cbd5e0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 0.5rem;
+    }
+
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] .css-10trblm {
+        color: #e2e8f0 !important;
+    }
+
+    /* Input fields */
+    .stTextInput input,
+    .stTextArea textarea,
+    .stSelectbox select,
+    .stNumberInput input {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        color: #e2e8f0 !important;
+        padding: 12px 16px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .stTextInput input:focus,
+    .stTextArea textarea:focus,
+    .stSelectbox select:focus,
+    .stNumberInput input:focus {
+        border: 1px solid #667eea !important;
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.3) !important;
+        transform: scale(1.02);
+    }
+
+    /* Primary button - Futuristic glow */
     .stButton>button {
         width: 100%;
-        background-color: #1f77b4;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        font-weight: bold;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
+        font-weight: 700;
+        padding: 1rem 2rem;
+        border-radius: 15px;
+        border: none;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stButton>button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
+    }
+
+    .stButton>button:active {
+        transform: translateY(-1px);
+    }
+
+    /* Success/Error/Warning messages */
+    .stSuccess, .stError, .stWarning, .stInfo {
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1rem 1.5rem;
+    }
+
+    /* Form sections */
+    .css-1kyxreq {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 2rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 2rem;
+    }
+
+    /* Headers and labels */
+    h1, h2, h3 {
+        color: #e2e8f0 !important;
+        font-weight: 700;
+    }
+
+    label, .css-81oif8 {
+        color: #cbd5e0 !important;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    /* Radio buttons */
+    .stRadio > label {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 12px 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 5px;
+        transition: all 0.3s ease;
+    }
+
+    .stRadio > label:hover {
+        background: rgba(102, 126, 234, 0.2);
+        border-color: #667eea;
+    }
+
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #667eea !important;
+        font-size: 2rem !important;
+        font-weight: 900 !important;
+    }
+
+    /* Download button */
+    .stDownloadButton>button {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .stDownloadButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+
+    /* Phase status badge */
+    .phase-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Pricing cards */
+    .pricing-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 10px 0;
+        transition: all 0.3s ease;
+    }
+
+    .pricing-card:hover {
+        transform: translateX(10px);
+        border-color: #667eea;
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .main > div {
+        animation: fadeIn 0.5s ease-out;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown('<div class="main-header">🎓 StudyForge</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Your Personalized AI Study Planner - For Every Student, Every Subject</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🧠 PlanMind</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">AI-Powered Study Plans • Personalized • Adaptive • Smart</div>', unsafe_allow_html=True)
 
 # Sidebar for user info and credits
 with st.sidebar:
